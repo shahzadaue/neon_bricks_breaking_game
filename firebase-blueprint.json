@@ -1,0 +1,50 @@
+{
+  "entities": {
+    "HighScoreEntry": {
+      "title": "High Score Entry",
+      "description": "A player score submission for the global top community leaderboard",
+      "type": "object",
+      "properties": {
+        "playerName": {
+          "type": "string",
+          "description": "Display name or arcade tag of the player",
+          "minLength": 1,
+          "maxLength": 20
+        },
+        "score": {
+          "type": "number",
+          "description": "Total score achieved by the player"
+        },
+        "maxCombo": {
+          "type": "number",
+          "description": "Maximum combo multiplier streak achieved"
+        },
+        "levelReached": {
+          "type": "number",
+          "description": "Level or stage number reached"
+        },
+        "bricksCleared": {
+          "type": "number",
+          "description": "Total bricks destroyed in the game run"
+        },
+        "mode": {
+          "type": "string",
+          "description": "Mode played (SOLO or VS_2P)",
+          "enum": ["SOLO", "VS_2P"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the high score was recorded"
+        }
+      },
+      "required": ["playerName", "score", "maxCombo", "levelReached", "bricksCleared", "mode", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/leaderboard/{entryId}": {
+      "schema": "HighScoreEntry",
+      "description": "Global community high score leaderboard records"
+    }
+  }
+}

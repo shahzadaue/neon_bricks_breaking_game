@@ -1,0 +1,6 @@
+{
+  "name": "Neon Breakout - 2D Brick Breaker Game",
+  "description": "A high-performance, mobile-friendly 2D HTML5 Canvas Brick Breaker game featuring deterministic physics, responsive paddle control, and modular architecture.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
