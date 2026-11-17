@@ -5,6 +5,7 @@ import {defineConfig} from 'vite';
 
 export default defineConfig(() => {
   return {
+    base: '/neon_bricks_breaking_game/',  // YE LINE ADD KAREIN
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
