@@ -16,7 +16,7 @@ service cloud.firestore {
         data.playerName is string && data.playerName.size() >= 1 && data.playerName.size() <= 20 &&
         data.score is number && data.score >= 0 && data.score <= 10000000 &&
         data.maxCombo is number && data.maxCombo >= 0 && data.maxCombo <= 1000 &&
-        data.levelReached is number && data.levelReached >= 1 && data.levelReached <= 100 &&
+        data.levelReached is number && data.levelReached >= 1 && data.levelReached <= 1000 &&
         data.bricksCleared is number && data.bricksCleared >= 0 && data.bricksCleared <= 50000 &&
         data.mode is string && (data.mode == 'SOLO' || data.mode == 'VS_2P') &&
         data.createdAt == request.time;
