@@ -3,7 +3,7 @@
  * Allows players to see live Firestore community rankings and submit their runs.
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Trophy,
   Crown,
@@ -12,11 +12,7 @@ import {
   X,
   Send,
   CheckCircle2,
-  Users,
-  Swords,
-  User,
   Sparkles,
-  Layers,
   RotateCcw,
 } from 'lucide-react';
 import { LeaderboardEntry, LeaderboardService } from '../services/leaderboard-service';
@@ -52,6 +48,14 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
   const [submittedRank, setSubmittedRank] = useState<number | null>(null);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (isOpen) {
+      setHasSubmitted(false);
+      setSubmittedRank(null);
+      setErrorMessage(null);
+    }
+  }, [isOpen, currentRun?.score, currentRun?.level]);
+
   if (!isOpen) return null;
 
   const handleSubmitScore = async (e: React.FormEvent) => {
@@ -78,8 +82,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
       });
 
       setHasSubmitted(true);
-      // Determine probable rank
-      const rank = entries.findIndex((e) => currentRun.score >= e.score) + 1;
+      const rank = entries.findIndex((entry) => currentRun.score >= entry.score) + 1;
       setSubmittedRank(rank > 0 && rank <= 10 ? rank : null);
 
       if (onScoreSubmitted) {
@@ -258,7 +261,7 @@ export const LeaderboardModal: React.FC<LeaderboardModalProps> = ({
                           {entry.playerName}
                         </span>
                         <span
-                          className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-semibold uppercase ${
+                          className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-semibold uppercase ${
                             entry.mode === 'VS_2P'
                               ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
                               : 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
