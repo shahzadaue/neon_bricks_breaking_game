@@ -23,7 +23,7 @@ export interface LeaderboardEntry {
   levelReached: number;
   bricksCleared: number;
   mode: 'SOLO' | 'VS_2P';
-  createdAt?: any;
+  createdAt?: unknown;
 }
 
 const LEADERBOARD_COLLECTION = 'leaderboard';
@@ -128,7 +128,7 @@ export class LeaderboardService {
       playerName: sanitizedName,
       score: Math.max(0, Math.min(10000000, Math.floor(entry.score))),
       maxCombo: Math.max(0, Math.min(1000, Math.floor(entry.maxCombo))),
-      levelReached: Math.max(1, Math.min(100, Math.floor(entry.levelReached))),
+      levelReached: Math.max(1, Math.min(1000, Math.floor(entry.levelReached))),
       bricksCleared: Math.max(0, Math.min(50000, Math.floor(entry.bricksCleared))),
       mode: entry.mode === 'VS_2P' ? 'VS_2P' : 'SOLO',
       createdAt: serverTimestamp(),
