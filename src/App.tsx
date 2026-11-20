@@ -24,20 +24,16 @@ import {
   Layers,
   ChevronRight,
   Sparkles,
-  Users,
   User,
   Swords,
-  Search,
-  Award,
   Coins,
   Clock,
   Target,
   Gift,
   Shield,
-  Lock,
-  AlertCircle,
   Compass,
   Film,
+  Gamepad2,
 } from 'lucide-react';
 import { GameEngine } from './game/game-engine';
 import { GameMetrics, GameMode } from './game/types';
@@ -49,6 +45,10 @@ import { LeaderboardService, LeaderboardEntry } from './services/leaderboard-ser
 import { LeaderboardModal } from './components/LeaderboardModal';
 import { BackgroundGalleryModal } from './components/BackgroundGalleryModal';
 import { ChapterSelectModal } from './components/ChapterSelectModal';
+import { AdsterraBanner } from './components/AdsterraBanner';
+import { AdsterraNativeBanner } from './components/AdsterraNativeBanner';
+
+const DIRECT_LINK_URL = 'https://araplhn.org/4/0c7afad9e8e1588d829340df0ce9b9e7';
 
 export default function App() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -93,6 +93,7 @@ export default function App() {
   const [isLeaderboardLoading, setIsLeaderboardLoading] = useState(true);
   const [showBgGallery, setShowBgGallery] = useState(false);
   const [bgState, setBgState] = useState(() => BackgroundManager.getInstance().getState());
+  const [roundBonusClaimed, setRoundBonusClaimed] = useState(false);
 
   // Background Manager subscription
   useEffect(() => {
@@ -194,6 +195,7 @@ export default function App() {
 
   // Mode Selection
   const handleSetMode = (mode: GameMode) => {
+    setRoundBonusClaimed(false);
     if (engineRef.current) {
       engineRef.current.setGameMode(mode);
       engineRef.current.startPlay(metrics.level, mode);
@@ -202,10 +204,12 @@ export default function App() {
 
   // Controls
   const handleStartPlay = () => {
+    setRoundBonusClaimed(false);
     engineRef.current?.startPlay(metrics.level, metrics.gameMode);
   };
 
   const handleStartPlayer2 = () => {
+    setRoundBonusClaimed(false);
     engineRef.current?.startPlayer2Turn();
   };
 
@@ -221,6 +225,7 @@ export default function App() {
   }, []);
 
   const handleNextStage = () => {
+    setRoundBonusClaimed(false);
     engineRef.current?.nextLevel();
   };
 
@@ -235,6 +240,7 @@ export default function App() {
     }
     const success = engineRef.current?.selectLevel(lvl);
     if (success !== false) {
+      setRoundBonusClaimed(false);
       setShowLevelModal(false);
       setLockedStageToast(null);
     }
@@ -245,6 +251,7 @@ export default function App() {
   };
 
   const handleRestart = () => {
+    setRoundBonusClaimed(false);
     engineRef.current?.restart();
   };
 
@@ -297,6 +304,19 @@ export default function App() {
     }
   };
 
+  const handleMoreGamesClick = useCallback(() => {
+    window.open(DIRECT_LINK_URL, '_blank', 'noopener,noreferrer');
+  }, []);
+
+  const handleClaimBonusCoins = useCallback(() => {
+    window.open(DIRECT_LINK_URL, '_blank', 'noopener,noreferrer');
+    if (!roundBonusClaimed) {
+      DailyMissionsManager.getInstance().addCoins(50);
+      setRoundBonusClaimed(true);
+      engineRef.current?.getAudio()?.playPowerUpCollect();
+    }
+  }, [roundBonusClaimed]);
+
   // Preview level audit data for selected level
   const auditLevelData: LevelData = useMemo(() => {
     return LevelGenerator.generateLevel(selectedAuditLevel, 600, 800);
@@ -336,7 +356,7 @@ export default function App() {
   const bloggerIframeCode = `<!-- START NEON BREAKOUT BLOGGER EMBED -->
 <div style="position: relative; width: 100%; max-width: 600px; margin: 0 auto; aspect-ratio: 3/4; border-radius: 16px; overflow: hidden; box-shadow: 0 20px 40px rgba(0,0,0,0.6); background: #080b12;">
   <iframe
-    src="https://ais-dev-wfmsb2joqcfaizruoudlqa-57151763148.asia-southeast1.run.app/"
+    src="https://shahzadaue.github.io/neon_bricks_breaking_game/"
     title="Neon Breakout 2D Brick Breaker Game"
     width="100%"
     height="100%"
@@ -357,807 +377,850 @@ export default function App() {
   const isVersus = metrics.gameMode === 'VS_2P';
 
   return (
-    <div className="min-h-screen bg-[#07090e] text-slate-100 flex flex-col items-center justify-between font-sans selection:bg-cyan-500 selection:text-white">
-      {/* 1. TOP BAR HUD (Clean 3-zone contract) */}
-      <header className="w-full max-w-5xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-3 border-b border-slate-800/80 bg-[#090d16]/90 backdrop-blur-md z-20">
-        {/* Zone 1: Brand & Level Shelf selector */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center font-display font-black text-xs text-white shadow-lg shadow-cyan-500/20">
-            NB
-          </div>
-          <button
-            onClick={() => setShowLevelModal(true)}
-            title="Open Chapter & Stage Shelf (100 Chapters · 1000 Stages)"
-            className="flex flex-col text-left hover:opacity-90 transition-opacity cursor-pointer group"
-          >
-            <span className="font-display font-bold text-xs sm:text-sm tracking-tight text-white whitespace-nowrap flex items-center gap-1.5">
-              NEON BREAKOUT
-              <span className="text-[10px] text-cyan-400 font-mono font-normal group-hover:underline">
-                [STAGE {metrics.level}/1000]
+    <div className="min-h-[100dvh] bg-[#07090e] text-slate-100 flex flex-col items-center font-sans selection:bg-cyan-500 selection:text-white">
+      <div className="w-full min-h-[100dvh] flex flex-col items-center justify-between">
+        {/* 1. TOP BAR HUD (Clean 3-zone contract) */}
+        <header className="w-full max-w-5xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-3 border-b border-slate-800/80 bg-[#090d16]/90 backdrop-blur-md z-20">
+          {/* Zone 1: Brand & Level Shelf selector */}
+          <div className="flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center font-display font-black text-xs text-white shadow-lg shadow-cyan-500/20">
+              NB
+            </div>
+            <button
+              onClick={() => setShowLevelModal(true)}
+              title="Open Chapter & Stage Shelf (100 Chapters · 1000 Stages)"
+              className="flex flex-col text-left hover:opacity-90 transition-opacity cursor-pointer group"
+            >
+              <span className="font-display font-bold text-xs sm:text-sm tracking-tight text-white whitespace-nowrap flex items-center gap-1.5">
+                NEON BREAKOUT
+                <span className="text-[10px] text-cyan-400 font-mono font-normal group-hover:underline">
+                  [STAGE {metrics.level}/1000]
+                </span>
               </span>
-            </span>
-            <span className="text-[10px] text-slate-400 tracking-wider uppercase font-mono-num truncate max-w-[140px] sm:max-w-[240px]">
-              {metrics.level <= 250 ? 'Easy' : metrics.level <= 500 ? 'Ordinary' : metrics.level <= 750 ? 'Hard' : 'Extraordinary Hard'} · {metrics.chapterName}
-            </span>
-          </button>
-        </div>
-
-        {/* Zone 2: Mode Selector & Live In-Game Metrics */}
-        <div className="flex items-center gap-2 sm:gap-4 text-xs font-mono-num">
-          {/* Mode Switcher Pills */}
-          <div className="flex items-center bg-slate-900 rounded-lg p-0.5 border border-slate-800">
-            <button
-              onClick={() => handleSetMode('SOLO')}
-              className={`px-2 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors ${
-                !isVersus
-                  ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <User className="w-3 h-3" />
-              <span className="hidden sm:inline">1P Solo</span>
-            </button>
-            <button
-              onClick={() => handleSetMode('VS_2P')}
-              className={`px-2 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors ${
-                isVersus
-                  ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              <Swords className="w-3 h-3" />
-              <span className="hidden sm:inline">2P Versus</span>
+              <span className="text-[10px] text-slate-400 tracking-wider uppercase font-mono-num truncate max-w-[140px] sm:max-w-[240px]">
+                {metrics.level <= 250 ? 'Easy' : metrics.level <= 500 ? 'Ordinary' : metrics.level <= 750 ? 'Hard' : 'Extraordinary Hard'} · {metrics.chapterName}
+              </span>
             </button>
           </div>
 
-          {/* Versus Score Display or Solo Score */}
-          {isVersus ? (
-            <div className="flex items-center gap-2">
-              {/* Player 1 Box */}
-              <div
-                className={`flex items-center gap-1 px-2 py-1 rounded-md border transition-all ${
-                  metrics.activePlayer === 1 && metrics.state !== 'VS_MATCH_OVER'
-                    ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-sm shadow-cyan-500/20'
-                    : 'bg-slate-900/80 border-slate-800 text-slate-400'
+          {/* Zone 2: Mode Selector & Live In-Game Metrics */}
+          <div className="flex items-center gap-2 sm:gap-4 text-xs font-mono-num">
+            {/* Mode Switcher Pills */}
+            <div className="flex items-center bg-slate-900 rounded-lg p-0.5 border border-slate-800">
+              <button
+                onClick={() => handleSetMode('SOLO')}
+                className={`px-2 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors ${
+                  !isVersus
+                    ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/30'
+                    : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <span className="text-[10px] uppercase font-bold">P1:</span>
-                <span className="font-bold font-mono-num text-xs sm:text-sm">
-                  {metrics.activePlayer === 1 ? metrics.score : metrics.p1Data.score}
-                </span>
-              </div>
-
-              {/* Player 2 Box */}
-              <div
-                className={`flex items-center gap-1 px-2 py-1 rounded-md border transition-all ${
-                  metrics.activePlayer === 2 && metrics.state !== 'VS_MATCH_OVER'
-                    ? 'bg-rose-500/20 border-rose-400 text-rose-300 shadow-sm shadow-rose-500/20'
-                    : 'bg-slate-900/80 border-slate-800 text-slate-400'
+                <User className="w-3 h-3" />
+                <span className="hidden sm:inline">1P Solo</span>
+              </button>
+              <button
+                onClick={() => handleSetMode('VS_2P')}
+                className={`px-2 py-1 rounded text-[11px] font-semibold flex items-center gap-1 transition-colors ${
+                  isVersus
+                    ? 'bg-rose-500/20 text-rose-300 border border-rose-500/30'
+                    : 'text-slate-400 hover:text-slate-200'
                 }`}
               >
-                <span className="text-[10px] uppercase font-bold">P2:</span>
-                <span className="font-bold font-mono-num text-xs sm:text-sm">
-                  {metrics.activePlayer === 2 ? metrics.score : metrics.p2Data.score}
-                </span>
-              </div>
+                <Swords className="w-3 h-3" />
+                <span className="hidden sm:inline">2P Versus</span>
+              </button>
             </div>
-          ) : (
-            <div className="flex items-center gap-1.5 bg-slate-900/80 px-2.5 py-1 rounded-md border border-slate-800">
-              <span className="text-slate-400 text-[10px] uppercase">SCORE</span>
-              <span className="font-bold text-cyan-400 text-sm">{metrics.score}</span>
-            </div>
-          )}
 
-          {/* Lives Indicator */}
-          <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-900/80 px-2 py-1 rounded-md border border-slate-800">
-            {Array.from({ length: metrics.maxLives }).map((_, i) => (
-              <Heart
-                key={i}
-                className={`w-3.5 h-3.5 transition-all ${
-                  i < metrics.lives
-                    ? isVersus && metrics.activePlayer === 2
-                      ? 'text-rose-500 fill-rose-500 drop-shadow-[0_0_6px_rgba(244,63,94,0.6)]'
-                      : 'text-cyan-400 fill-cyan-400 drop-shadow-[0_0_6px_rgba(6,182,212,0.6)]'
-                    : 'text-slate-700'
-                }`}
-              />
-            ))}
+            {/* Versus Score Display or Solo Score */}
+            {isVersus ? (
+              <div className="flex items-center gap-2">
+                {/* Player 1 Box */}
+                <div
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md border transition-all ${
+                    metrics.activePlayer === 1 && metrics.state !== 'VS_MATCH_OVER'
+                      ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-sm shadow-cyan-500/20'
+                      : 'bg-slate-900/80 border-slate-800 text-slate-400'
+                  }`}
+                >
+                  <span className="text-[10px] uppercase font-bold">P1:</span>
+                  <span className="font-bold font-mono-num text-xs sm:text-sm">
+                    {metrics.activePlayer === 1 ? metrics.score : metrics.p1Data.score}
+                  </span>
+                </div>
+
+                {/* Player 2 Box */}
+                <div
+                  className={`flex items-center gap-1 px-2 py-1 rounded-md border transition-all ${
+                    metrics.activePlayer === 2 && metrics.state !== 'VS_MATCH_OVER'
+                      ? 'bg-rose-500/20 border-rose-400 text-rose-300 shadow-sm shadow-rose-500/20'
+                      : 'bg-slate-900/80 border-slate-800 text-slate-400'
+                  }`}
+                >
+                  <span className="text-[10px] uppercase font-bold">P2:</span>
+                  <span className="font-bold font-mono-num text-xs sm:text-sm">
+                    {metrics.activePlayer === 2 ? metrics.score : metrics.p2Data.score}
+                  </span>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 bg-slate-900/80 px-2.5 py-1 rounded-md border border-slate-800">
+                <span className="text-slate-400 text-[10px] uppercase">SCORE</span>
+                <span className="font-bold text-cyan-400 text-sm">{metrics.score}</span>
+              </div>
+            )}
+
+            {/* Lives Indicator */}
+            <div className="flex items-center gap-0.5 sm:gap-1 bg-slate-900/80 px-2 py-1 rounded-md border border-slate-800">
+              {Array.from({ length: metrics.maxLives }).map((_, i) => (
+                <Heart
+                  key={i}
+                  className={`w-3.5 h-3.5 transition-all ${
+                    i < metrics.lives
+                      ? isVersus && metrics.activePlayer === 2
+                        ? 'text-rose-500 fill-rose-500 drop-shadow-[0_0_6px_rgba(244,63,94,0.6)]'
+                        : 'text-cyan-400 fill-cyan-400 drop-shadow-[0_0_6px_rgba(6,182,212,0.6)]'
+                      : 'text-slate-700'
+                  }`}
+                />
+              ))}
+            </div>
+
+            {/* Combo Multiplier */}
+            {metrics.combo > 1 && (
+              <div className="hidden sm:flex items-center gap-1 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/30 text-amber-400 font-bold text-xs animate-pulse">
+                <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                <span>{metrics.combo}x</span>
+              </div>
+            )}
           </div>
 
-          {/* Combo Multiplier */}
-          {metrics.combo > 1 && (
-            <div className="hidden sm:flex items-center gap-1 bg-amber-500/10 px-2 py-1 rounded-md border border-amber-500/30 text-amber-400 font-bold text-xs animate-pulse">
-              <Flame className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-              <span>{metrics.combo}x</span>
-            </div>
-          )}
-        </div>
-
-        {/* Zone 3: Functional Actions */}
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          {/* Coin Balance Badge */}
-          <button
-            onClick={() => setShowMissionsModal(true)}
-            title="Coin Balance - Click to open Daily Missions"
-            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 hover:border-amber-500/60 text-amber-400 font-mono-num text-xs font-bold shadow-sm shadow-amber-500/10 shrink-0 transition-all cursor-pointer"
-          >
-            <Coins className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-            <span>{coins.toLocaleString()}</span>
-          </button>
-
-          {/* Global Top 10 Leaderboard Badge */}
-          <button
-            onClick={() => setShowLeaderboardModal(true)}
-            title="Global Top 10 Community Leaderboard (Firestore Live)"
-            className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500/15 to-yellow-500/15 border border-amber-500/40 hover:border-amber-400 text-amber-300 font-mono-num text-xs font-bold shadow-sm shadow-amber-500/10 shrink-0 transition-all cursor-pointer"
-          >
-            <Trophy className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
-            <span className="hidden sm:inline">TOP 10</span>
-          </button>
-
-          {/* Daily Missions Trigger Button */}
-          <button
-            onClick={() => setShowMissionsModal(true)}
-            title="Daily Missions & Objectives (Earn Bonus Coins)"
-            className="relative p-1.5 px-2 sm:px-2.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-cyan-500/50 flex items-center gap-1.5 text-slate-300 hover:text-white transition-colors text-xs font-mono shrink-0 cursor-pointer"
-          >
-            <Target className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden sm:inline">Missions</span>
-            {unclaimedCount > 0 ? (
-              <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-500 text-[10px] font-bold text-slate-950 font-sans shadow-sm shadow-amber-500/50 animate-pulse">
-                {unclaimedCount} READY
-              </span>
-            ) : null}
-          </button>
-
-          <button
-            onClick={() => setShowLevelModal(true)}
-            title="Chapter & Stage Shelf (100 Chapters · 1000 Stages)"
-            className="p-1.5 px-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 flex items-center gap-1 text-slate-300 hover:text-white transition-colors text-xs font-mono shrink-0 cursor-pointer"
-          >
-            <Layers className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden sm:inline">1000 Stages</span>
-          </button>
-
-          {/* 400 Premium Background Environments Gallery Button */}
-          <button
-            onClick={() => setShowBgGallery(true)}
-            title={`400 Background Environments - Current: ${bgState.currentBackground.backgroundId} (${bgState.currentBackground.backgroundName}) [${bgState.mode.toUpperCase()}]`}
-            className="p-1.5 px-2 rounded-lg bg-gradient-to-r from-indigo-500/15 to-purple-500/15 border border-indigo-500/40 hover:border-indigo-400 text-indigo-300 hover:text-white transition-all text-xs font-mono shrink-0 cursor-pointer flex items-center gap-1.5 shadow-sm shadow-indigo-500/10"
-          >
-            <Compass className="w-3.5 h-3.5 text-indigo-400" />
-            <span className="hidden md:inline">400 Worlds</span>
-            <span className="text-[10px] text-indigo-300 font-mono font-bold">
-              [{bgState.currentBackground.backgroundId}]
-            </span>
-          </button>
-
-          <button
-            onClick={handleToggleMute}
-            aria-label={metrics.isMuted ? 'Unmute Sound' : 'Mute Sound'}
-            title={metrics.isMuted ? 'Unmute Sound' : 'Mute Sound'}
-            className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 flex items-center justify-center text-slate-300 hover:text-white transition-colors"
-          >
-            {metrics.isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-cyan-400" />}
-          </button>
-
-          {metrics.state === 'PLAYING' || metrics.state === 'PAUSED' ? (
+          {/* Zone 3: Functional Actions */}
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            {/* Coin Balance Badge */}
             <button
-              onClick={handleTogglePause}
-              aria-label={metrics.state === 'PAUSED' ? 'Resume Game' : 'Pause Game'}
-              title={metrics.state === 'PAUSED' ? 'Resume' : 'Pause'}
+              onClick={() => setShowMissionsModal(true)}
+              title="Coin Balance - Click to open Daily Missions"
+              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg bg-amber-500/10 border border-amber-500/30 hover:border-amber-500/60 text-amber-400 font-mono-num text-xs font-bold shadow-sm shadow-amber-500/10 shrink-0 transition-all cursor-pointer"
+            >
+              <Coins className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+              <span>{coins.toLocaleString()}</span>
+            </button>
+
+            {/* Global Top 10 Leaderboard Badge */}
+            <button
+              onClick={() => setShowLeaderboardModal(true)}
+              title="Global Top 10 Community Leaderboard (Firestore Live)"
+              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500/15 to-yellow-500/15 border border-amber-500/40 hover:border-amber-400 text-amber-300 font-mono-num text-xs font-bold shadow-sm shadow-amber-500/10 shrink-0 transition-all cursor-pointer"
+            >
+              <Trophy className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+              <span className="hidden sm:inline">TOP 10</span>
+            </button>
+
+            {/* Daily Missions Trigger Button */}
+            <button
+              onClick={() => setShowMissionsModal(true)}
+              title="Daily Missions & Objectives (Earn Bonus Coins)"
+              className="relative p-1.5 px-2 sm:px-2.5 rounded-lg bg-slate-900 border border-slate-800 hover:border-cyan-500/50 flex items-center gap-1.5 text-slate-300 hover:text-white transition-colors text-xs font-mono shrink-0 cursor-pointer"
+            >
+              <Target className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden sm:inline">Missions</span>
+              {unclaimedCount > 0 ? (
+                <span className="flex items-center gap-0.5 px-1.5 py-0.5 rounded-full bg-amber-500 text-[10px] font-bold text-slate-950 font-sans shadow-sm shadow-amber-500/50 animate-pulse">
+                  {unclaimedCount} READY
+                </span>
+              ) : null}
+            </button>
+
+            <button
+              onClick={() => setShowLevelModal(true)}
+              title="Chapter & Stage Shelf (100 Chapters · 1000 Stages)"
+              className="p-1.5 px-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 flex items-center gap-1 text-slate-300 hover:text-white transition-colors text-xs font-mono shrink-0 cursor-pointer"
+            >
+              <Layers className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="hidden sm:inline">1000 Stages</span>
+            </button>
+
+            {/* 400 Premium Background Environments Gallery Button */}
+            <button
+              onClick={() => setShowBgGallery(true)}
+              title={`400 Background Environments - Current: ${bgState.currentBackground.backgroundId} (${bgState.currentBackground.backgroundName}) [${bgState.mode.toUpperCase()}]`}
+              className="p-1.5 px-2 rounded-lg bg-gradient-to-r from-indigo-500/15 to-purple-500/15 border border-indigo-500/40 hover:border-indigo-400 text-indigo-300 hover:text-white transition-all text-xs font-mono shrink-0 cursor-pointer flex items-center gap-1.5 shadow-sm shadow-indigo-500/10"
+            >
+              <Compass className="w-3.5 h-3.5 text-indigo-400" />
+              <span className="hidden md:inline">400 Worlds</span>
+              <span className="text-[10px] text-indigo-300 font-mono font-bold">
+                [{bgState.currentBackground.backgroundId}]
+              </span>
+            </button>
+
+            <button
+              onClick={handleToggleMute}
+              aria-label={metrics.isMuted ? 'Unmute Sound' : 'Mute Sound'}
+              title={metrics.isMuted ? 'Unmute Sound' : 'Mute Sound'}
               className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 flex items-center justify-center text-slate-300 hover:text-white transition-colors"
             >
-              {metrics.state === 'PAUSED' ? <Play className="w-4 h-4 text-emerald-400" /> : <Pause className="w-4 h-4 text-amber-400" />}
+              {metrics.isMuted ? <VolumeX className="w-4 h-4 text-rose-400" /> : <Volume2 className="w-4 h-4 text-cyan-400" />}
             </button>
-          ) : null}
 
-          <button
-            onClick={() => setShowEmbedModal(true)}
-            className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-cyan-950/60 border border-cyan-800/60 text-xs font-medium text-cyan-300 hover:bg-cyan-900/60 transition-colors whitespace-nowrap"
+            {metrics.state === 'PLAYING' || metrics.state === 'PAUSED' ? (
+              <button
+                onClick={handleTogglePause}
+                aria-label={metrics.state === 'PAUSED' ? 'Resume Game' : 'Pause Game'}
+                title={metrics.state === 'PAUSED' ? 'Resume' : 'Pause'}
+                className="w-8 h-8 rounded-lg bg-slate-900 border border-slate-800 hover:border-slate-700 flex items-center justify-center text-slate-300 hover:text-white transition-colors"
+              >
+                {metrics.state === 'PAUSED' ? <Play className="w-4 h-4 text-emerald-400" /> : <Pause className="w-4 h-4 text-amber-400" />}
+              </button>
+            ) : null}
+
+            <button
+              onClick={() => setShowEmbedModal(true)}
+              className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-cyan-950/60 border border-cyan-800/60 text-xs font-medium text-cyan-300 hover:bg-cyan-900/60 transition-colors whitespace-nowrap"
+            >
+              <Code2 className="w-3.5 h-3.5" />
+              <span>Audit</span>
+            </button>
+          </div>
+        </header>
+
+        {/* RESPONSIVE TOP BANNER (320x50 on Mobile <768px, 728x90 on Desktop >=768px) */}
+        <AdsterraBanner />
+
+        {/* 2. GAME VIEWPORT PLAYFIELD (Isolated container) */}
+        <main className="w-full flex-1 flex items-center justify-center p-2 sm:p-3 overflow-hidden relative">
+          <div
+            id="game-viewport-container"
+            className="relative w-full max-w-[540px] aspect-[3/4] max-h-[70dvh] md:max-h-[72dvh] rounded-2xl overflow-hidden border border-slate-800/90 shadow-2xl shadow-cyan-950/20 bg-[#080b12] flex items-center justify-center"
           >
-            <Code2 className="w-3.5 h-3.5" />
-            <span>Audit</span>
-          </button>
-        </div>
-      </header>
+            {/* Active Canvas */}
+            <canvas
+              ref={canvasRef}
+              className="game-viewport-canvas w-full h-full block cursor-crosshair"
+            />
 
-      {/* 2. GAME VIEWPORT PLAYFIELD (Isolated container) */}
-      <main className="w-full flex-1 flex items-center justify-center p-2 sm:p-4 overflow-hidden relative">
-        <div
-          id="game-viewport-container"
-          className="relative w-full max-w-[540px] aspect-[3/4] max-h-[82vh] rounded-2xl overflow-hidden border border-slate-800/90 shadow-2xl shadow-cyan-950/20 bg-[#080b12] flex items-center justify-center"
-        >
-          {/* Active Canvas */}
-          <canvas
-            ref={canvasRef}
-            className="game-viewport-canvas w-full h-full block cursor-crosshair"
-          />
-
-          {/* Low-occlusion perimeter HUD stats */}
-          <div className="absolute top-3 left-3 pointer-events-none flex items-center gap-2 text-[11px] font-mono-num text-slate-400">
-            {isVersus && (
-              <span
-                className={`px-2 py-0.5 rounded font-bold border ${
-                  metrics.activePlayer === 1
-                    ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
-                    : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
-                }`}
-              >
-                P{metrics.activePlayer} ACTIVE
-              </span>
-            )}
-            {metrics.bossInfo?.isBoss && (
-              <span className="px-2 py-0.5 rounded font-extrabold text-[11px] bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1 shadow-sm shadow-rose-500/20 animate-pulse">
-                ⚔️ BOSS BATTLE
-              </span>
-            )}
-            <span className="bg-slate-900/80 px-2 py-0.5 rounded border border-slate-800/80">
-              BRICKS: {metrics.remainingBricks}/{metrics.totalBricks}
-            </span>
-            {metrics.activePowerUps && metrics.activePowerUps.map((buff) => (
-              <span
-                key={buff.type}
-                className="px-2 py-0.5 rounded font-bold border flex items-center gap-1 animate-pulse"
-                style={{
-                  backgroundColor: `${buff.color}20`,
-                  borderColor: `${buff.color}60`,
-                  color: buff.color,
-                }}
-              >
-                {buff.label} {buff.remainingTime > 0 ? `${Math.ceil(buff.remainingTime)}s` : ''}
-              </span>
-            ))}
-          </div>
-
-          <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
-            <button
-              onClick={handleToggleBloom}
-              aria-label={metrics.bloomEnabled !== false ? 'Disable Neon Bloom' : 'Enable Neon Bloom'}
-              title={metrics.bloomEnabled !== false ? 'Neon Bloom: ON' : 'Neon Bloom: OFF'}
-              className={`p-1.5 rounded-md border transition-colors cursor-pointer ${
-                metrics.bloomEnabled !== false
-                  ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/30'
-                  : 'bg-slate-900/80 border-slate-800/80 text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              <Sparkles className="w-3.5 h-3.5" />
-            </button>
-            <button
-              onClick={handleToggleFullscreen}
-              aria-label="Toggle Fullscreen"
-              className="p-1.5 rounded-md bg-slate-900/80 border border-slate-800/80 text-slate-400 hover:text-white transition-colors"
-            >
-              <Maximize2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-          {/* Mission Completed In-Game Toast Banner */}
-          {missionToast && (
-            <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-slate-950/95 border border-cyan-400/80 shadow-2xl shadow-cyan-500/30 text-white text-xs max-w-[90%] pointer-events-auto backdrop-blur-md animate-bounce">
-              <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 shrink-0 shadow-md shadow-amber-500/30">
-                <Gift className="w-4 h-4" />
-              </div>
-              <div className="flex flex-col text-left min-w-0">
-                <span className="text-[10px] uppercase font-bold text-cyan-400 tracking-wider">
-                  Objective Complete!
-                </span>
-                <span className="font-semibold text-slate-100 truncate text-[11px]">
-                  {missionToast.title}
-                </span>
-              </div>
-              <button
-                onClick={() => {
-                  setShowMissionsModal(true);
-                  setMissionToast(null);
-                }}
-                className="ml-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-[10px] tracking-wide uppercase shrink-0 transition-all cursor-pointer shadow-sm shadow-amber-500/20"
-              >
-                Claim +{missionToast.rewardCoins}
-              </button>
-            </div>
-          )}
-
-          {/* OVERLAY: TITLE SCREEN */}
-          {metrics.state === 'TITLE' && (
-            <div className="absolute inset-0 bg-[#07090e]/85 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-10">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 mb-3 animate-bounce">
-                <Flame className="w-8 h-8 text-white" />
-              </div>
-              <h1 className="font-display font-extrabold text-3xl sm:text-4xl tracking-tight text-white mb-1">
-                NEON BREAKOUT
-              </h1>
-              <p className="text-xs sm:text-sm text-slate-300 max-w-sm mb-3">
-                1000 Seeded Stages · 100 Chapters · 4 Difficulty Tiers
-              </p>
-
-              {/* Mode Selection on Title Screen */}
-              <div className="flex gap-2 mb-6">
-                <button
-                  onClick={() => handleSetMode('SOLO')}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all ${
-                    !isVersus
-                      ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400 shadow-md shadow-cyan-500/20'
-                      : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:bg-slate-800'
+            {/* Low-occlusion perimeter HUD stats */}
+            <div className="absolute top-3 left-3 pointer-events-none flex items-center gap-2 text-[11px] font-mono-num text-slate-400">
+              {isVersus && (
+                <span
+                  className={`px-2 py-0.5 rounded font-bold border ${
+                    metrics.activePlayer === 1
+                      ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/30'
+                      : 'bg-rose-500/20 text-rose-300 border-rose-500/30'
                   }`}
                 >
-                  <User className="w-3.5 h-3.5" />
-                  Solo Campaign
-                </button>
-                <button
-                  onClick={() => handleSetMode('VS_2P')}
-                  className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all ${
-                    isVersus
-                      ? 'bg-rose-500/20 text-rose-300 border-rose-400 shadow-md shadow-rose-500/20'
-                      : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:bg-slate-800'
-                  }`}
+                  P{metrics.activePlayer} ACTIVE
+                </span>
+              )}
+              {metrics.bossInfo?.isBoss && (
+                <span className="px-2 py-0.5 rounded font-extrabold text-[11px] bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1 shadow-sm shadow-rose-500/20 animate-pulse">
+                  ⚔️ BOSS BATTLE
+                </span>
+              )}
+              <span className="bg-slate-900/80 px-2 py-0.5 rounded border border-slate-800/80">
+                BRICKS: {metrics.remainingBricks}/{metrics.totalBricks}
+              </span>
+              {metrics.activePowerUps && metrics.activePowerUps.map((buff) => (
+                <span
+                  key={buff.type}
+                  className="px-2 py-0.5 rounded font-bold border flex items-center gap-1 animate-pulse"
+                  style={{
+                    backgroundColor: `${buff.color}20`,
+                    borderColor: `${buff.color}60`,
+                    color: buff.color,
+                  }}
                 >
-                  <Swords className="w-3.5 h-3.5" />
-                  2-Player Versus
-                </button>
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-3 items-center mb-3">
-                <button
-                  onClick={handleStartPlay}
-                  className="px-8 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm tracking-wide shadow-lg shadow-cyan-500/30 transition-transform active:scale-95 flex items-center gap-2 cursor-pointer"
-                >
-                  <Play className="w-4 h-4 fill-white" />
-                  {isVersus ? 'START 2P COMPETITION' : 'START SOLO GAME'}
-                </button>
-                <button
-                  onClick={() => setShowLevelModal(true)}
-                  className="px-5 py-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white font-semibold text-xs tracking-wide flex items-center gap-2 cursor-pointer"
-                >
-                  <Layers className="w-4 h-4 text-cyan-400" />
-                  100 Chapters & 1000 Stages
-                </button>
-              </div>
-
-              <p className="text-[11px] text-slate-400 font-mono-num">
-                {isVersus
-                  ? 'Player 1 sets high score, Player 2 competes on identical level!'
-                  : 'Press SPACE or Click to Launch'}
-              </p>
+                  {buff.label} {buff.remainingTime > 0 ? `${Math.ceil(buff.remainingTime)}s` : ''}
+                </span>
+              ))}
             </div>
-          )}
 
-          {/* OVERLAY: 2-PLAYER INTERSTITIAL (Between Player 1 & Player 2) */}
-          {metrics.state === 'VS_INTERSTITIAL' && (
-            <div className="absolute inset-0 bg-[#07090e]/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-10 animate-fade-in">
-              <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mb-2 text-cyan-400">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <h2 className="font-display font-bold text-xl sm:text-2xl text-cyan-300 mb-1">
-                PLAYER 1 ROUND FINISHED!
-              </h2>
-              <p className="text-xs text-slate-400 mb-4 font-mono-num">
-                {metrics.levelTitle}
-              </p>
-
-              <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 w-72 mb-6">
-                <div className="flex justify-between items-center text-xs mb-2">
-                  <span className="text-slate-400">Player 1 Score:</span>
-                  <span className="font-bold text-cyan-400 font-mono-num text-base">{metrics.p1Data.score}</span>
-                </div>
-                <div className="flex justify-between items-center text-xs mb-2">
-                  <span className="text-slate-400">Max Combo:</span>
-                  <span className="font-semibold text-amber-400 font-mono-num">{metrics.p1Data.maxCombo}x</span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-400">Stage Status:</span>
-                  <span className={`font-semibold ${metrics.p1Data.completed ? 'text-emerald-400' : 'text-slate-400'}`}>
-                    {metrics.p1Data.completed ? 'Stage Cleared' : 'Balls Depleted'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl w-72 mb-5 text-center">
-                <div className="text-xs font-bold text-rose-300 uppercase mb-0.5">Player 2 Get Ready!</div>
-                <div className="text-[11px] text-slate-300">
-                  Target to beat: <strong className="text-white font-mono-num">{metrics.p1Data.score}</strong> points
-                </div>
-              </div>
-
+            <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
               <button
-                onClick={handleStartPlayer2}
-                className="px-8 py-3 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white font-bold text-sm tracking-wide shadow-lg shadow-rose-500/30 transition-transform active:scale-95 flex items-center gap-2"
+                onClick={handleToggleBloom}
+                aria-label={metrics.bloomEnabled !== false ? 'Disable Neon Bloom' : 'Enable Neon Bloom'}
+                title={metrics.bloomEnabled !== false ? 'Neon Bloom: ON' : 'Neon Bloom: OFF'}
+                className={`p-1.5 rounded-md border transition-colors cursor-pointer ${
+                  metrics.bloomEnabled !== false
+                    ? 'bg-cyan-500/20 border-cyan-400/50 text-cyan-300 hover:bg-cyan-500/30'
+                    : 'bg-slate-900/80 border-slate-800/80 text-slate-500 hover:text-slate-300'
+                }`}
               >
-                <Play className="w-4 h-4 fill-white" />
-                START PLAYER 2 TURN
+                <Sparkles className="w-3.5 h-3.5" />
+              </button>
+              <button
+                onClick={handleToggleFullscreen}
+                aria-label="Toggle Fullscreen"
+                className="p-1.5 rounded-md bg-slate-900/80 border border-slate-800/80 text-slate-400 hover:text-white transition-colors"
+              >
+                <Maximize2 className="w-3.5 h-3.5" />
               </button>
             </div>
-          )}
 
-          {/* OVERLAY: 2-PLAYER MATCH OVER (High Scorer Player Wins!) */}
-          {metrics.state === 'VS_MATCH_OVER' && (
-            <div className="absolute inset-0 bg-[#07090e]/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-10 animate-fade-in">
-              <div
-                className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-3 shadow-lg ${
-                  metrics.vsWinner === 'P1'
-                    ? 'bg-cyan-500/20 border border-cyan-400 text-cyan-300 shadow-cyan-500/30'
-                    : metrics.vsWinner === 'P2'
-                    ? 'bg-rose-500/20 border border-rose-400 text-rose-300 shadow-rose-500/30'
-                    : 'bg-amber-500/20 border border-amber-400 text-amber-300 shadow-amber-500/30'
-                }`}
-              >
-                <Trophy className="w-8 h-8" />
+            {/* Locked Stage Toast */}
+            {lockedStageToast && (
+              <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 px-3.5 py-2 rounded-xl bg-slate-950/95 border border-rose-500/60 shadow-xl text-rose-300 text-xs font-medium max-w-[90%] text-center">
+                {lockedStageToast}
               </div>
+            )}
 
-              <h2
-                className={`font-display font-extrabold text-2xl sm:text-3xl mb-1 ${
-                  metrics.vsWinner === 'P1'
-                    ? 'text-cyan-300'
-                    : metrics.vsWinner === 'P2'
-                    ? 'text-rose-300'
-                    : 'text-amber-300'
-                }`}
-              >
-                {metrics.vsWinner === 'P1'
-                  ? 'PLAYER 1 WINS!'
-                  : metrics.vsWinner === 'P2'
-                  ? 'PLAYER 2 WINS!'
-                  : "IT'S A TIE!"}
-              </h2>
-              <p className="text-xs text-slate-300 mb-4 font-mono-num">
-                {metrics.vsWinner !== 'TIE'
-                  ? `Highest Scorer Claims Victory on ${metrics.levelTitle}!`
-                  : `Both Players Tied on ${metrics.levelTitle}!`}
-              </p>
-
-              {/* Head-to-Head Comparison Table */}
-              <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 w-72 mb-6 text-xs">
-                <div className="grid grid-cols-3 pb-2 border-b border-slate-800 text-[10px] uppercase font-bold text-slate-400">
-                  <span className="text-left">Stat</span>
-                  <span className="text-cyan-400 text-center">Player 1</span>
-                  <span className="text-rose-400 text-center">Player 2</span>
+            {/* Mission Completed In-Game Toast Banner */}
+            {missionToast && (
+              <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 flex items-center gap-2.5 px-3.5 py-2 rounded-xl bg-slate-950/95 border border-cyan-400/80 shadow-2xl shadow-cyan-500/30 text-white text-xs max-w-[90%] pointer-events-auto backdrop-blur-md animate-bounce">
+                <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center text-slate-950 shrink-0 shadow-md shadow-amber-500/30">
+                  <Gift className="w-4 h-4" />
                 </div>
+                <div className="flex flex-col text-left min-w-0">
+                  <span className="text-[10px] uppercase font-bold text-cyan-400 tracking-wider">
+                    Objective Complete!
+                  </span>
+                  <span className="font-semibold text-slate-100 truncate text-[11px]">
+                    {missionToast.title}
+                  </span>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowMissionsModal(true);
+                    setMissionToast(null);
+                  }}
+                  className="ml-1.5 px-2.5 py-1 rounded-lg bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-bold text-[10px] tracking-wide uppercase shrink-0 transition-all cursor-pointer shadow-sm shadow-amber-500/20"
+                >
+                  Claim +{missionToast.rewardCoins}
+                </button>
+              </div>
+            )}
 
-                <div className="grid grid-cols-3 py-2 border-b border-slate-800/60 font-mono-num items-center">
-                  <span className="text-slate-400 text-left font-sans">Score</span>
-                  <span
-                    className={`text-center font-bold text-sm ${
-                      metrics.p1Data.score >= metrics.p2Data.score ? 'text-cyan-300 font-extrabold' : 'text-slate-400'
+            {/* OVERLAY: TITLE SCREEN */}
+            {metrics.state === 'TITLE' && (
+              <div className="absolute inset-0 bg-[#07090e]/85 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-10">
+                <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30 mb-3 animate-bounce">
+                  <Flame className="w-8 h-8 text-white" />
+                </div>
+                <h1 className="font-display font-extrabold text-3xl sm:text-4xl tracking-tight text-white mb-1">
+                  NEON BREAKOUT
+                </h1>
+                <p className="text-xs sm:text-sm text-slate-300 max-w-sm mb-3">
+                  1000 Seeded Stages · 100 Chapters · 4 Difficulty Tiers
+                </p>
+
+                {/* Mode Selection on Title Screen */}
+                <div className="flex gap-2 mb-5">
+                  <button
+                    onClick={() => handleSetMode('SOLO')}
+                    className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all ${
+                      !isVersus
+                        ? 'bg-cyan-500/20 text-cyan-300 border-cyan-400 shadow-md shadow-cyan-500/20'
+                        : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:bg-slate-800'
                     }`}
                   >
-                    {metrics.p1Data.score}
-                  </span>
-                  <span
-                    className={`text-center font-bold text-sm ${
-                      metrics.p2Data.score >= metrics.p1Data.score ? 'text-rose-300 font-extrabold' : 'text-slate-400'
+                    <User className="w-3.5 h-3.5" />
+                    Solo Campaign
+                  </button>
+                  <button
+                    onClick={() => handleSetMode('VS_2P')}
+                    className={`px-4 py-2 rounded-xl text-xs font-semibold flex items-center gap-1.5 border transition-all ${
+                      isVersus
+                        ? 'bg-rose-500/20 text-rose-300 border-rose-400 shadow-md shadow-rose-500/20'
+                        : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:bg-slate-800'
                     }`}
                   >
-                    {metrics.p2Data.score}
-                  </span>
-                </div>
-
-                <div className="grid grid-cols-3 py-2 border-b border-slate-800/60 font-mono-num items-center">
-                  <span className="text-slate-400 text-left font-sans">Max Combo</span>
-                  <span className="text-center font-semibold text-slate-200">{metrics.p1Data.maxCombo}x</span>
-                  <span className="text-center font-semibold text-slate-200">{metrics.p2Data.maxCombo}x</span>
-                </div>
-
-                <div className="grid grid-cols-3 pt-2 text-[11px] items-center">
-                  <span className="text-slate-400 text-left font-sans">Cleared</span>
-                  <span className={`text-center ${metrics.p1Data.completed ? 'text-emerald-400' : 'text-slate-400'}`}>
-                    {metrics.p1Data.completed ? 'Yes' : 'No'}
-                  </span>
-                  <span className={`text-center ${metrics.p2Data.completed ? 'text-emerald-400' : 'text-slate-400'}`}>
-                    {metrics.p2Data.completed ? 'Yes' : 'No'}
-                  </span>
-                </div>
-              </div>
-
-              <div className="flex flex-wrap justify-center gap-2">
-                {metrics.replayInfo?.available && (
-                  <button
-                    onClick={handleStartReplay}
-                    className="px-4 py-2.5 rounded-xl bg-rose-500/20 border border-rose-500/40 hover:bg-rose-500/30 text-rose-300 font-bold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Film className="w-4 h-4 text-rose-400" />
-                    REPLAY ({Math.min(10, metrics.replayInfo.duration).toFixed(1)}s)
+                    <Swords className="w-3.5 h-3.5" />
+                    2-Player Versus
                   </button>
-                )}
-                <button
-                  onClick={handleRestart}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs tracking-wide shadow-md flex items-center gap-1.5 cursor-pointer"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  REMATCH
-                </button>
-                <button
-                  onClick={() => setShowLeaderboardModal(true)}
-                  className="px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30 text-amber-300 font-bold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Trophy className="w-4 h-4 text-amber-400" />
-                  LEADERBOARD
-                </button>
-                <button
-                  onClick={handleNextStage}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs tracking-wide shadow-md flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Play className="w-4 h-4 fill-white" />
-                  NEXT LEVEL
-                </button>
-                <button
-                  onClick={() => setShowLevelModal(true)}
-                  className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs tracking-wide flex items-center gap-1 cursor-pointer"
-                >
-                  <Layers className="w-4 h-4 text-cyan-400" />
-                  SHELF
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* OVERLAY: PAUSED */}
-          {metrics.state === 'PAUSED' && (
-            <div className="absolute inset-0 bg-[#07090e]/85 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-10">
-              <h2 className="font-display font-bold text-2xl text-white mb-2">GAME PAUSED</h2>
-              <p className="text-xs text-slate-400 mb-6 font-mono-num">
-                {metrics.levelTitle} · Score: {metrics.score}
-              </p>
-              <div className="flex gap-3">
-                <button
-                  onClick={handleTogglePause}
-                  className="px-5 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs tracking-wide flex items-center gap-2"
-                >
-                  <Play className="w-4 h-4 fill-white" />
-                  Resume
-                </button>
-                <button
-                  onClick={handleRestart}
-                  className="px-5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs tracking-wide flex items-center gap-2"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  Restart
-                </button>
-                <button
-                  onClick={() => setShowLevelModal(true)}
-                  className="px-5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs tracking-wide flex items-center gap-2"
-                >
-                  <Layers className="w-4 h-4" />
-                  Level Shelf
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* OVERLAY: GAME OVER (Solo) */}
-          {metrics.state === 'GAMEOVER' && (
-            <div className="absolute inset-0 bg-[#07090e]/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-10 animate-fade-in">
-              <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mb-3 text-rose-500">
-                <Heart className="w-6 h-6" />
-              </div>
-              <h2 className="font-display font-bold text-2xl text-rose-400 mb-1">GAME OVER</h2>
-              <p className="text-xs text-slate-400 mb-4 font-mono-num">{metrics.levelTitle}</p>
-
-              <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 w-64 mb-6">
-                <div className="flex justify-between items-center text-xs mb-2">
-                  <span className="text-slate-400">Final Score:</span>
-                  <span className="font-bold text-cyan-400 font-mono-num text-sm">{metrics.score}</span>
                 </div>
-                <div className="flex justify-between items-center text-xs mb-2">
-                  <span className="text-slate-400">High Score:</span>
-                  <span className="font-semibold text-amber-400 font-mono-num">{metrics.highScore}</span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-400">Max Combo:</span>
-                  <span className="font-semibold text-emerald-400 font-mono-num">{metrics.maxCombo}x</span>
-                </div>
-              </div>
 
-              <div className="flex flex-wrap justify-center gap-2">
-                {metrics.replayInfo?.available && (
+                <div className="flex flex-wrap justify-center gap-2.5 items-center mb-3">
                   <button
-                    onClick={handleStartReplay}
-                    className="px-4 py-2.5 rounded-xl bg-rose-500/20 border border-rose-500/40 hover:bg-rose-500/30 text-rose-300 font-bold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer"
+                    onClick={handleStartPlay}
+                    className="px-7 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-sm tracking-wide shadow-lg shadow-cyan-500/30 transition-transform active:scale-95 flex items-center gap-2 cursor-pointer"
                   >
-                    <Film className="w-4 h-4 text-rose-400" />
-                    WATCH 10s REPLAY ({Math.min(10, metrics.replayInfo.duration).toFixed(1)}s)
+                    <Play className="w-4 h-4 fill-white" />
+                    {isVersus ? 'START 2P COMPETITION' : 'START SOLO GAME'}
                   </button>
-                )}
-                <button
-                  onClick={handleRestart}
-                  className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-cyan-500/25 flex items-center gap-2 cursor-pointer"
-                >
-                  <RotateCcw className="w-4 h-4" />
-                  RETRY
-                </button>
-                <button
-                  onClick={() => setShowLeaderboardModal(true)}
-                  className="px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30 text-amber-300 font-bold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Trophy className="w-4 h-4 text-amber-400" />
-                  SUBMIT SCORE
-                </button>
-                <button
-                  onClick={() => setShowLevelModal(true)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Layers className="w-4 h-4 text-cyan-400" />
-                  LEVEL SHELF
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* OVERLAY: STAGE VICTORY (Solo) */}
-          {metrics.state === 'VICTORY' && (
-            <div className="absolute inset-0 bg-[#07090e]/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-10 animate-fade-in">
-              <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-3 text-emerald-400">
-                <Trophy className="w-6 h-6" />
-              </div>
-              <h2 className="font-display font-bold text-2xl text-emerald-400 mb-1">STAGE CLEARED!</h2>
-              <p className="text-xs text-slate-300 mb-4">{metrics.levelTitle}</p>
-
-              <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 w-64 mb-6">
-                <div className="flex justify-between items-center text-xs mb-2">
-                  <span className="text-slate-400">Score:</span>
-                  <span className="font-bold text-cyan-400 font-mono-num text-sm">{metrics.score}</span>
+                  <button
+                    onClick={() => setShowLevelModal(true)}
+                    className="px-4 py-3 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white font-semibold text-xs tracking-wide flex items-center gap-2 cursor-pointer"
+                  >
+                    <Layers className="w-4 h-4 text-cyan-400" />
+                    100 Chapters & 1000 Stages
+                  </button>
+                  <button
+                    onClick={handleMoreGamesClick}
+                    className="px-4 py-3 rounded-xl bg-indigo-500/15 border border-indigo-500/40 hover:bg-indigo-500/25 text-indigo-200 font-semibold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Gamepad2 className="w-4 h-4 text-indigo-400" />
+                    More Games
+                  </button>
                 </div>
-                <div className="flex justify-between items-center text-xs mb-2">
-                  <span className="text-slate-400">Combo Streak:</span>
-                  <span className="font-semibold text-amber-400 font-mono-num">{metrics.maxCombo}x</span>
-                </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-slate-400">Lives Left:</span>
-                  <span className="font-semibold text-rose-400 font-mono-num">{metrics.lives} / {metrics.maxLives}</span>
-                </div>
-              </div>
 
-              <div className="mb-4">
-                {metrics.level % 10 === 0 ? (
-                  <div className="px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-semibold animate-pulse">
-                    🏆 CHAPTER COMPLETE! All 10 Stages Conquered!
+                <p className="text-[11px] text-slate-400 font-mono-num">
+                  {isVersus
+                    ? 'Player 1 sets high score, Player 2 competes on identical level!'
+                    : 'Press SPACE or Click to Launch'}
+                </p>
+              </div>
+            )}
+
+            {/* OVERLAY: 2-PLAYER INTERSTITIAL (Between Player 1 & Player 2) */}
+            {metrics.state === 'VS_INTERSTITIAL' && (
+              <div className="absolute inset-0 bg-[#07090e]/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-10 animate-fade-in">
+                <div className="w-12 h-12 rounded-xl bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center mb-2 text-cyan-400">
+                  <CheckCircle2 className="w-6 h-6" />
+                </div>
+                <h2 className="font-display font-bold text-xl sm:text-2xl text-cyan-300 mb-1">
+                  PLAYER 1 ROUND FINISHED!
+                </h2>
+                <p className="text-xs text-slate-400 mb-4 font-mono-num">
+                  {metrics.levelTitle}
+                </p>
+
+                <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 w-72 mb-6">
+                  <div className="flex justify-between items-center text-xs mb-2">
+                    <span className="text-slate-400">Player 1 Score:</span>
+                    <span className="font-bold text-cyan-400 font-mono-num text-base">{metrics.p1Data.score}</span>
                   </div>
-                ) : (
-                  <div className="px-3 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-medium">
-                    🔓 Stage {metrics.level < 1000 ? metrics.level + 1 : 1} is now Unlocked!
+                  <div className="flex justify-between items-center text-xs mb-2">
+                    <span className="text-slate-400">Max Combo:</span>
+                    <span className="font-semibold text-amber-400 font-mono-num">{metrics.p1Data.maxCombo}x</span>
                   </div>
-                )}
-              </div>
-
-              <div className="flex flex-wrap justify-center gap-2">
-                {metrics.replayInfo?.available && (
-                  <button
-                    onClick={handleStartReplay}
-                    className="px-5 py-2.5 rounded-xl bg-rose-500/20 border border-rose-500/40 hover:bg-rose-500/30 text-rose-300 font-bold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Film className="w-4 h-4 text-rose-400" />
-                    WATCH 10s REPLAY ({Math.min(10, metrics.replayInfo.duration).toFixed(1)}s)
-                  </button>
-                )}
-                <button
-                  onClick={handleNextStage}
-                  className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-emerald-500/25 flex items-center gap-2 cursor-pointer"
-                >
-                  <Play className="w-4 h-4 fill-white" />
-                  NEXT STAGE ({metrics.level < 1000 ? metrics.level + 1 : 1})
-                </button>
-                <button
-                  onClick={() => setShowLeaderboardModal(true)}
-                  className="px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30 text-amber-300 font-bold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Trophy className="w-4 h-4 text-amber-400" />
-                  SUBMIT SCORE
-                </button>
-                <button
-                  onClick={() => setShowLevelModal(true)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Layers className="w-4 h-4 text-cyan-400" />
-                  LEVEL SHELF
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* OVERLAY: 10-SECOND INSTANT REPLAY CONTROLS */}
-          {metrics.state === 'REPLAY' && metrics.replayInfo && (
-            <div className="absolute bottom-3 left-3 right-3 z-20 bg-slate-950/90 backdrop-blur-md border border-rose-500/40 rounded-xl p-2.5 shadow-2xl shadow-black/60 flex flex-col gap-2">
-              {/* Scrubber Timeline */}
-              <div className="flex items-center gap-2.5 px-1">
-                <span className="text-[10px] font-mono-num font-bold text-rose-400 shrink-0 flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
-                  REC
-                </span>
-                <input
-                  type="range"
-                  min={0}
-                  max={Math.max(0.1, metrics.replayInfo.duration)}
-                  step={0.05}
-                  value={metrics.replayInfo.currentTime}
-                  onChange={(e) => handleSeekReplay(parseFloat(e.target.value))}
-                  aria-label="Replay timeline scrubber"
-                  className="flex-1 h-1.5 accent-rose-500 bg-slate-800 rounded-lg cursor-pointer"
-                />
-                <span className="text-[11px] font-mono-num text-slate-300 shrink-0 min-w-[78px] text-right">
-                  {metrics.replayInfo.currentTime.toFixed(1)}s / {metrics.replayInfo.duration.toFixed(1)}s
-                </span>
-              </div>
-
-              {/* Playback Actions */}
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={handleToggleReplayPlayPause}
-                    className="px-3 py-1.5 rounded-lg bg-rose-500 hover:bg-rose-400 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
-                  >
-                    {metrics.replayInfo.isPlaying ? (
-                      <>
-                        <Pause className="w-3.5 h-3.5" />
-                        Pause
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-3.5 h-3.5 fill-white" />
-                        {metrics.replayInfo.currentTime >= metrics.replayInfo.duration - 0.05 ? 'Replay' : 'Play'}
-                      </>
-                    )}
-                  </button>
-                  <button
-                    onClick={handleRestartReplay}
-                    title="Restart 10s Replay"
-                    className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 cursor-pointer transition-colors"
-                  >
-                    <RotateCcw className="w-3.5 h-3.5" />
-                  </button>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">Stage Status:</span>
+                    <span className={`font-semibold ${metrics.p1Data.completed ? 'text-emerald-400' : 'text-slate-400'}`}>
+                      {metrics.p1Data.completed ? 'Stage Cleared' : 'Balls Depleted'}
+                    </span>
+                  </div>
                 </div>
 
-                {/* Speed Pills */}
-                <div className="flex items-center bg-slate-900 rounded-lg p-0.5 border border-slate-800">
-                  {[0.5, 1, 1.5].map((spd) => (
-                    <button
-                      key={spd}
-                      onClick={() => handleSetReplaySpeed(spd)}
-                      className={`px-2 py-1 rounded text-[10px] font-mono-num font-bold cursor-pointer transition-colors ${
-                        metrics.replayInfo?.speed === spd
-                          ? 'bg-rose-500/25 text-rose-300 border border-rose-500/40'
-                          : 'text-slate-400 hover:text-white'
+                <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl w-72 mb-5 text-center">
+                  <div className="text-xs font-bold text-rose-300 uppercase mb-0.5">Player 2 Get Ready!</div>
+                  <div className="text-[11px] text-slate-300">
+                    Target to beat: <strong className="text-white font-mono-num">{metrics.p1Data.score}</strong> points
+                  </div>
+                </div>
+
+                <button
+                  onClick={handleStartPlayer2}
+                  className="px-8 py-3 rounded-xl bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white font-bold text-sm tracking-wide shadow-lg shadow-rose-500/30 transition-transform active:scale-95 flex items-center gap-2"
+                >
+                  <Play className="w-4 h-4 fill-white" />
+                  START PLAYER 2 TURN
+                </button>
+              </div>
+            )}
+
+            {/* OVERLAY: 2-PLAYER MATCH OVER (High Scorer Player Wins!) */}
+            {metrics.state === 'VS_MATCH_OVER' && (
+              <div className="absolute inset-0 bg-[#07090e]/95 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-10 animate-fade-in">
+                <div
+                  className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-3 shadow-lg ${
+                    metrics.vsWinner === 'P1'
+                      ? 'bg-cyan-500/20 border border-cyan-400 text-cyan-300 shadow-cyan-500/30'
+                      : metrics.vsWinner === 'P2'
+                      ? 'bg-rose-500/20 border border-rose-400 text-rose-300 shadow-rose-500/30'
+                      : 'bg-amber-500/20 border border-amber-400 text-amber-300 shadow-amber-500/30'
+                  }`}
+                >
+                  <Trophy className="w-8 h-8" />
+                </div>
+
+                <h2
+                  className={`font-display font-extrabold text-2xl sm:text-3xl mb-1 ${
+                    metrics.vsWinner === 'P1'
+                      ? 'text-cyan-300'
+                      : metrics.vsWinner === 'P2'
+                      ? 'text-rose-300'
+                      : 'text-amber-300'
+                  }`}
+                >
+                  {metrics.vsWinner === 'P1'
+                    ? 'PLAYER 1 WINS!'
+                    : metrics.vsWinner === 'P2'
+                    ? 'PLAYER 2 WINS!'
+                    : "IT'S A TIE!"}
+                </h2>
+                <p className="text-xs text-slate-300 mb-4 font-mono-num">
+                  {metrics.vsWinner !== 'TIE'
+                    ? `Highest Scorer Claims Victory on ${metrics.levelTitle}!`
+                    : `Both Players Tied on ${metrics.levelTitle}!`}
+                </p>
+
+                {/* Head-to-Head Comparison Table */}
+                <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 w-72 mb-5 text-xs">
+                  <div className="grid grid-cols-3 pb-2 border-b border-slate-800 text-[10px] uppercase font-bold text-slate-400">
+                    <span className="text-left">Stat</span>
+                    <span className="text-cyan-400 text-center">Player 1</span>
+                    <span className="text-rose-400 text-center">Player 2</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 py-2 border-b border-slate-800/60 font-mono-num items-center">
+                    <span className="text-slate-400 text-left font-sans">Score</span>
+                    <span
+                      className={`text-center font-bold text-sm ${
+                        metrics.p1Data.score >= metrics.p2Data.score ? 'text-cyan-300 font-extrabold' : 'text-slate-400'
                       }`}
                     >
-                      {spd}x
-                    </button>
-                  ))}
+                      {metrics.p1Data.score}
+                    </span>
+                    <span
+                      className={`text-center font-bold text-sm ${
+                        metrics.p2Data.score >= metrics.p1Data.score ? 'text-rose-300 font-extrabold' : 'text-slate-400'
+                      }`}
+                    >
+                      {metrics.p2Data.score}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 py-2 border-b border-slate-800/60 font-mono-num items-center">
+                    <span className="text-slate-400 text-left font-sans">Max Combo</span>
+                    <span className="text-center font-semibold text-slate-200">{metrics.p1Data.maxCombo}x</span>
+                    <span className="text-center font-semibold text-slate-200">{metrics.p2Data.maxCombo}x</span>
+                  </div>
+
+                  <div className="grid grid-cols-3 pt-2 text-[11px] items-center">
+                    <span className="text-slate-400 text-left font-sans">Cleared</span>
+                    <span className={`text-center ${metrics.p1Data.completed ? 'text-emerald-400' : 'text-slate-400'}`}>
+                      {metrics.p1Data.completed ? 'Yes' : 'No'}
+                    </span>
+                    <span className={`text-center ${metrics.p2Data.completed ? 'text-emerald-400' : 'text-slate-400'}`}>
+                      {metrics.p2Data.completed ? 'Yes' : 'No'}
+                    </span>
+                  </div>
                 </div>
 
-                <button
-                  onClick={handleExitReplay}
-                  className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <X className="w-3.5 h-3.5" />
-                  Exit
-                </button>
+                <div className="flex flex-wrap justify-center gap-2">
+                  {metrics.replayInfo?.available && (
+                    <button
+                      onClick={handleStartReplay}
+                      className="px-4 py-2.5 rounded-xl bg-rose-500/20 border border-rose-500/40 hover:bg-rose-500/30 text-rose-300 font-bold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Film className="w-4 h-4 text-rose-400" />
+                      REPLAY ({Math.min(10, metrics.replayInfo.duration).toFixed(1)}s)
+                    </button>
+                  )}
+                  <button
+                    onClick={handleRestart}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs tracking-wide shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    REMATCH
+                  </button>
+                  <button
+                    onClick={() => setShowLeaderboardModal(true)}
+                    className="px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30 text-amber-300 font-bold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Trophy className="w-4 h-4 text-amber-400" />
+                    LEADERBOARD
+                  </button>
+                  <button
+                    onClick={handleNextStage}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs tracking-wide shadow-md flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Play className="w-4 h-4 fill-white" />
+                    NEXT LEVEL
+                  </button>
+                  <button
+                    onClick={() => setShowLevelModal(true)}
+                    className="px-3.5 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs tracking-wide flex items-center gap-1 cursor-pointer"
+                  >
+                    <Layers className="w-4 h-4 text-cyan-400" />
+                    SHELF
+                  </button>
+                  <button
+                    onClick={handleClaimBonusCoins}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer shadow-md shadow-amber-500/20"
+                  >
+                    <Gift className="w-4 h-4" />
+                    {roundBonusClaimed ? 'More Games' : '+50 Bonus Coins'}
+                  </button>
+                </div>
               </div>
-            </div>
-          )}
-        </div>
-      </main>
+            )}
 
-      {/* 3. BOTTOM CONTROL HINTS (Clean single line, mobile-ready) */}
-      <footer className="w-full max-w-5xl mx-auto px-4 py-2 border-t border-slate-800/80 bg-[#090d16]/90 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-400 gap-2 z-10">
-        <div className="flex items-center gap-3">
-          <span>Mouse / Touch Drag</span>
-          <span aria-hidden="true">·</span>
-          <span>A/D or Arrows</span>
-          <span aria-hidden="true">·</span>
-          <span>Space to Launch</span>
-          <span aria-hidden="true">·</span>
-          <span>Esc to Pause</span>
-        </div>
+            {/* OVERLAY: PAUSED */}
+            {metrics.state === 'PAUSED' && (
+              <div className="absolute inset-0 bg-[#07090e]/85 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-10">
+                <h2 className="font-display font-bold text-2xl text-white mb-2">GAME PAUSED</h2>
+                <p className="text-xs text-slate-400 mb-6 font-mono-num">
+                  {metrics.levelTitle} · Score: {metrics.score}
+                </p>
+                <div className="flex gap-3">
+                  <button
+                    onClick={handleTogglePause}
+                    className="px-5 py-2.5 rounded-lg bg-cyan-600 hover:bg-cyan-500 text-white font-semibold text-xs tracking-wide flex items-center gap-2"
+                  >
+                    <Play className="w-4 h-4 fill-white" />
+                    Resume
+                  </button>
+                  <button
+                    onClick={handleRestart}
+                    className="px-5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs tracking-wide flex items-center gap-2"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    Restart
+                  </button>
+                  <button
+                    onClick={() => setShowLevelModal(true)}
+                    className="px-5 py-2.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs tracking-wide flex items-center gap-2"
+                  >
+                    <Layers className="w-4 h-4" />
+                    Level Shelf
+                  </button>
+                </div>
+              </div>
+            )}
 
-        <div className="flex items-center gap-4 text-xs font-mono-num">
-          <button
-            onClick={() => setShowLevelModal(true)}
-            className="text-cyan-400 hover:underline flex items-center gap-1 cursor-pointer"
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>100 Chapters & 1000 Stages</span>
-          </button>
-          <span>HTML5 Seeded Procedural Engine</span>
-        </div>
-      </footer>
+            {/* OVERLAY: GAME OVER (Solo) */}
+            {metrics.state === 'GAMEOVER' && (
+              <div className="absolute inset-0 bg-[#07090e]/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-10 animate-fade-in">
+                <div className="w-12 h-12 rounded-xl bg-rose-500/10 border border-rose-500/30 flex items-center justify-center mb-3 text-rose-500">
+                  <Heart className="w-6 h-6" />
+                </div>
+                <h2 className="font-display font-bold text-2xl text-rose-400 mb-1">GAME OVER</h2>
+                <p className="text-xs text-slate-400 mb-4 font-mono-num">{metrics.levelTitle}</p>
+
+                <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 w-64 mb-5">
+                  <div className="flex justify-between items-center text-xs mb-2">
+                    <span className="text-slate-400">Final Score:</span>
+                    <span className="font-bold text-cyan-400 font-mono-num text-sm">{metrics.score}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs mb-2">
+                    <span className="text-slate-400">High Score:</span>
+                    <span className="font-semibold text-amber-400 font-mono-num">{metrics.highScore}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">Max Combo:</span>
+                    <span className="font-semibold text-emerald-400 font-mono-num">{metrics.maxCombo}x</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-wrap justify-center gap-2">
+                  {metrics.replayInfo?.available && (
+                    <button
+                      onClick={handleStartReplay}
+                      className="px-4 py-2.5 rounded-xl bg-rose-500/20 border border-rose-500/40 hover:bg-rose-500/30 text-rose-300 font-bold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Film className="w-4 h-4 text-rose-400" />
+                      WATCH 10s REPLAY ({Math.min(10, metrics.replayInfo.duration).toFixed(1)}s)
+                    </button>
+                  )}
+                  <button
+                    onClick={handleRestart}
+                    className="px-5 py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-cyan-500/25 flex items-center gap-2 cursor-pointer"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                    RETRY
+                  </button>
+                  <button
+                    onClick={() => setShowLeaderboardModal(true)}
+                    className="px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30 text-amber-300 font-bold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Trophy className="w-4 h-4 text-amber-400" />
+                    SUBMIT SCORE
+                  </button>
+                  <button
+                    onClick={() => setShowLevelModal(true)}
+                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Layers className="w-4 h-4 text-cyan-400" />
+                    LEVEL SHELF
+                  </button>
+                  <button
+                    onClick={handleClaimBonusCoins}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer shadow-md shadow-amber-500/20"
+                  >
+                    <Gift className="w-4 h-4" />
+                    {roundBonusClaimed ? 'More Games' : '+50 Bonus Coins'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* OVERLAY: STAGE VICTORY (Solo) */}
+            {metrics.state === 'VICTORY' && (
+              <div className="absolute inset-0 bg-[#07090e]/90 backdrop-blur-sm flex flex-col items-center justify-center p-6 text-center z-10 animate-fade-in">
+                <div className="w-12 h-12 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mb-3 text-emerald-400">
+                  <Trophy className="w-6 h-6" />
+                </div>
+                <h2 className="font-display font-bold text-2xl text-emerald-400 mb-1">STAGE CLEARED!</h2>
+                <p className="text-xs text-slate-300 mb-4">{metrics.levelTitle}</p>
+
+                <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-4 w-64 mb-5">
+                  <div className="flex justify-between items-center text-xs mb-2">
+                    <span className="text-slate-400">Score:</span>
+                    <span className="font-bold text-cyan-400 font-mono-num text-sm">{metrics.score}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs mb-2">
+                    <span className="text-slate-400">Combo Streak:</span>
+                    <span className="font-semibold text-amber-400 font-mono-num">{metrics.maxCombo}x</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-slate-400">Lives Left:</span>
+                    <span className="font-semibold text-rose-400 font-mono-num">{metrics.lives} / {metrics.maxLives}</span>
+                  </div>
+                </div>
+
+                <div className="mb-4">
+                  {metrics.level % 10 === 0 ? (
+                    <div className="px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-semibold animate-pulse">
+                      🏆 CHAPTER COMPLETE! All 10 Stages Conquered!
+                    </div>
+                  ) : (
+                    <div className="px-3 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-medium">
+                      🔓 Stage {metrics.level < 1000 ? metrics.level + 1 : 1} is now Unlocked!
+                    </div>
+                  )}
+                </div>
+
+                <div className="flex flex-wrap justify-center gap-2">
+                  {metrics.replayInfo?.available && (
+                    <button
+                      onClick={handleStartReplay}
+                      className="px-5 py-2.5 rounded-xl bg-rose-500/20 border border-rose-500/40 hover:bg-rose-500/30 text-rose-300 font-bold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Film className="w-4 h-4 text-rose-400" />
+                      WATCH 10s REPLAY ({Math.min(10, metrics.replayInfo.duration).toFixed(1)}s)
+                    </button>
+                  )}
+                  <button
+                    onClick={handleNextStage}
+                    className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white font-bold text-xs tracking-wide shadow-lg shadow-emerald-500/25 flex items-center gap-2 cursor-pointer"
+                  >
+                    <Play className="w-4 h-4 fill-white" />
+                    NEXT STAGE ({metrics.level < 1000 ? metrics.level + 1 : 1})
+                  </button>
+                  <button
+                    onClick={() => setShowLeaderboardModal(true)}
+                    className="px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 hover:bg-amber-500/30 text-amber-300 font-bold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Trophy className="w-4 h-4 text-amber-400" />
+                    SUBMIT SCORE
+                  </button>
+                  <button
+                    onClick={() => setShowLevelModal(true)}
+                    className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-white font-semibold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <Layers className="w-4 h-4 text-cyan-400" />
+                    LEVEL SHELF
+                  </button>
+                  <button
+                    onClick={handleClaimBonusCoins}
+                    className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-extrabold text-xs tracking-wide flex items-center gap-1.5 cursor-pointer shadow-md shadow-amber-500/20"
+                  >
+                    <Gift className="w-4 h-4" />
+                    {roundBonusClaimed ? 'More Games' : '+50 Bonus Coins'}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* OVERLAY: 10-SECOND INSTANT REPLAY CONTROLS */}
+            {metrics.state === 'REPLAY' && metrics.replayInfo && (
+              <div className="absolute bottom-3 left-3 right-3 z-20 bg-slate-950/90 backdrop-blur-md border border-rose-500/40 rounded-xl p-2.5 shadow-2xl shadow-black/60 flex flex-col gap-2">
+                {/* Scrubber Timeline */}
+                <div className="flex items-center gap-2.5 px-1">
+                  <span className="text-[10px] font-mono-num font-bold text-rose-400 shrink-0 flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" />
+                    REC
+                  </span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={Math.max(0.1, metrics.replayInfo.duration)}
+                    step={0.05}
+                    value={metrics.replayInfo.currentTime}
+                    onChange={(e) => handleSeekReplay(parseFloat(e.target.value))}
+                    aria-label="Replay timeline scrubber"
+                    className="flex-1 h-1.5 accent-rose-500 bg-slate-800 rounded-lg cursor-pointer"
+                  />
+                  <span className="text-[11px] font-mono-num text-slate-300 shrink-0 min-w-[78px] text-right">
+                    {metrics.replayInfo.currentTime.toFixed(1)}s / {metrics.replayInfo.duration.toFixed(1)}s
+                  </span>
+                </div>
+
+                {/* Playback Actions */}
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={handleToggleReplayPlayPause}
+                      className="px-3 py-1.5 rounded-lg bg-rose-500 hover:bg-rose-400 text-white font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
+                    >
+                      {metrics.replayInfo.isPlaying ? (
+                        <>
+                          <Pause className="w-3.5 h-3.5" />
+                          Pause
+                        </>
+                      ) : (
+                        <>
+                          <Play className="w-3.5 h-3.5 fill-white" />
+                          {metrics.replayInfo.currentTime >= metrics.replayInfo.duration - 0.05 ? 'Replay' : 'Play'}
+                        </>
+                      )}
+                    </button>
+                    <button
+                      onClick={handleRestartReplay}
+                      title="Restart 10s Replay"
+                      className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 cursor-pointer transition-colors"
+                    >
+                      <RotateCcw className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* Speed Pills */}
+                  <div className="flex items-center bg-slate-900 rounded-lg p-0.5 border border-slate-800">
+                    {[0.5, 1, 1.5].map((spd) => (
+                      <button
+                        key={spd}
+                        onClick={() => handleSetReplaySpeed(spd)}
+                        className={`px-2 py-1 rounded text-[10px] font-mono-num font-bold cursor-pointer transition-colors ${
+                          metrics.replayInfo?.speed === spd
+                            ? 'bg-rose-500/25 text-rose-300 border border-rose-500/40'
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {spd}x
+                      </button>
+                    ))}
+                  </div>
+
+                  <button
+                    onClick={handleExitReplay}
+                    className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white font-semibold text-xs flex items-center gap-1 cursor-pointer transition-colors"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                    Exit
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </main>
+
+        {/* 3. BOTTOM CONTROL HINTS (Clean single line, mobile-ready) */}
+        <footer className="w-full max-w-5xl mx-auto px-4 py-2 border-t border-slate-800/80 bg-[#090d16]/90 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-400 gap-2 z-10">
+          <div className="flex items-center gap-3">
+            <span>Mouse / Touch Drag</span>
+            <span aria-hidden="true">·</span>
+            <span>A/D or Arrows</span>
+            <span aria-hidden="true">·</span>
+            <span>Space to Launch</span>
+            <span aria-hidden="true">·</span>
+            <span>Esc to Pause</span>
+          </div>
+
+          <div className="flex items-center gap-4 text-xs font-mono-num">
+            <button
+              onClick={() => setShowLevelModal(true)}
+              className="text-cyan-400 hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <Layers className="w-3.5 h-3.5" />
+              <span>100 Chapters & 1000 Stages</span>
+            </button>
+            <span>HTML5 Seeded Procedural Engine</span>
+          </div>
+        </footer>
+      </div>
+
+      {/* NATIVE BANNER AD SECTION (Safely placed below game container in scroll area) */}
+      <AdsterraNativeBanner />
 
       {/* 4. CHAPTER & STAGE SHELF MODAL (100 Chapters · 1000 Stages) */}
       <ChapterSelectModal
@@ -1532,6 +1595,7 @@ export default function App() {
                 return (
                   <div
                     key={mission.id}
+                    data-just-claimed={isJustClaimed ? 'true' : 'false'}
                     className={`p-4 rounded-xl border transition-all ${
                       mission.isClaimed
                         ? 'bg-slate-900/40 border-slate-800/80 opacity-75'
